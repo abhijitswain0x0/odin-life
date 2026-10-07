@@ -136,7 +136,7 @@ xdotool mousemove 900 250; wheel 4 6; shot zoom-mid-b
 restart
 caption "12. MMB drag pans: far off the grid and back"
 key r .5; xdotool mousemove 640 360; wheel 5 10; shot pan-start
-panx() { xdotool mousemove "$1" 360 mousedown 2; sleep .1; for i in $(seq 1 10); do xdotool mousemove_relative -- "$2" 0; sleep .04; done; xdotool mouseup 2; sleep .2; }
+panx() { xdotool mousemove "$1" 360; sleep .2; xdotool mousedown 2; sleep .1; for i in $(seq 1 10); do xdotool mousemove_relative -- "$2" 0; sleep .04; done; xdotool mouseup 2; sleep .2; }
 for i in $(seq 1 10); do panx 1000 -40; done; sleep .4; shot pan-far
 for i in $(seq 1 10); do panx 300 40; done; sleep .4; shot pan-back
 
