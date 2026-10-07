@@ -62,13 +62,22 @@ count_neighbors :: proc(g: ^Grid, x, y: int, wrap: bool) -> int {
 // Pure with respect to (cur, next, wrap): no window and no allocation.
 step :: proc(cur, next: ^Grid, wrap: bool) -> int {
     pop := 0
-    for y in 0..<cur.h {
-        for x in 0..<cur.w {
-            n := count_neighbors(cur, x, y, wrap)
-            alive := cur.cells[y*cur.w+x] != 0
+    w, h := cur.w, cur.h
+    for y in 0..<h {
+        edge_row := y == 0 || y == h-1
+        for x in 0..<w {
+            n: int
+            if edge_row || x == 0 || x == w-1 {
+                n = count_neighbors(cur, x, y, wrap)
+            } else {
+                i := y*w + x
+                c := cur.cells
+                n = int(c[i-w-1]) + int(c[i-w]) + int(c[i-w+1]) + int(c[i-1]) + int(c[i+1]) + int(c[i+w-1]) + int(c[i+w]) + int(c[i+w+1])
+            }
+            alive := cur.cells[y*w+x] != 0
             v: u8 = 0
             if n == 3 || (alive && n == 2) { v = 1; pop += 1 }
-            next.cells[y*cur.w+x] = v
+            next.cells[y*w+x] = v
         }
     }
     return pop
