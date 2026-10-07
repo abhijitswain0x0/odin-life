@@ -99,3 +99,75 @@ no_wrap_edge_sees_dead :: proc(t: ^testing.T) {
     testing.expect(t, nn.cells[4*8+0] == 1)
     testing.expect(t, count_neighbors(&wn, 0, 4, false) == 2)
 }
+
+@(test)
+rle_glider_parses :: proc(t: ^testing.T) {
+    cells: [dynamic][2]int
+    defer delete(cells)
+    w, h, ok := parse_rle("#C comment\nx = 3, y = 3, rule = B3/S23\nbob$2bo$3o!\n", &cells)
+    testing.expect(t, ok)
+    testing.expect(t, w == 3 && h == 3)
+    testing.expect(t, len(cells) == 5)
+    testing.expect(t, cells[0] == [2]int{1, 0})
+    testing.expect(t, cells[4] == [2]int{2, 2})
+}
+
+@(test)
+builtin_patterns_have_expected_population :: proc(t: ^testing.T) {
+    expected := [?]int{5, 9, 36, 48, 5}
+    for p, i in PATTERNS {
+        cells: [dynamic][2]int
+        defer delete(cells)
+        _, _, ok := parse_rle(p.rle, &cells)
+        testing.expectf(t, ok && len(cells) == expected[i], "%s: got %d cells", p.name, len(cells))
+    }
+}
+
+@(test)
+pulsar_has_period_three :: proc(t: ^testing.T) {
+    cells: [dynamic][2]int
+    defer delete(cells)
+    parse_rle(PATTERNS[3].rle, &cells)
+    a, b, start := grid_make(30, 30), grid_make(30, 30), grid_make(30, 30)
+    defer delete(a.cells); defer delete(b.cells); defer delete(start.cells)
+    stamp_cells(&a, cells[:], 8, 8); stamp_cells(&start, cells[:], 8, 8)
+    advance(&a, &b, 1, true)
+    testing.expect(t, !same(&a, &start))
+    advance(&a, &b, 2, true)
+    testing.expect(t, same(&a, &start))
+}
+
+@(test)
+undo_restores_snapshots_in_order :: proc(t: ^testing.T) {
+    g := grid_make(10, 10)
+    defer delete(g.cells)
+    u := undo_make(100, 3)
+    defer undo_destroy(&u)
+    undo_push(&u, &g, 0)            // empty
+    grid_set(&g, 1, 1, 1)
+    undo_push(&u, &g, 7)            // one cell
+    grid_set(&g, 2, 2, 1)
+    gen, pop, ok := undo_pop(&u, &g)
+    testing.expect(t, ok && gen == 7 && pop == 1)
+    gen, pop, ok = undo_pop(&u, &g)
+    testing.expect(t, ok && gen == 0 && pop == 0)
+    _, _, ok = undo_pop(&u, &g)
+    testing.expect(t, !ok)
+    // Ring drops the oldest entry when full.
+    for i in 0..<5 { grid_set(&g, i, 0, 1); undo_push(&u, &g, i) }
+    testing.expect(t, u.count == 3)
+    gen, _, _ = undo_pop(&u, &g)
+    testing.expect(t, gen == 4)
+}
+
+@(test)
+big_grid_step_matches_edge_rules :: proc(t: ^testing.T) {
+    // Fast interior path and edge path agree on a glider crossing the seam.
+    a, b := grid_make(64, 64), grid_make(64, 64)
+    defer delete(a.cells); defer delete(b.cells)
+    stamp(&a, 60, 60, {".#.", "..#", "###"})
+    advance(&a, &b, 40, true)
+    pop := 0
+    for v in a.cells { pop += int(v) }
+    testing.expect(t, pop == 5)
+}
