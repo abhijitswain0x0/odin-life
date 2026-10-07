@@ -20,15 +20,22 @@ visible_cells :: proc(s: ^State) -> (x0, y0, x1, y1: int) {
     return
 }
 
+COLOR_DEAD :: rl.Color{20, 27, 40, 255}
+
+// Writes one color per cell into the pixel buffer and uploads it, only when something changed.
+upload_cells :: proc(s: ^State) {
+    if !s.dirty { return }
+    for v, i in s.cur.cells { s.pixels[i] = v != 0 ? COLOR_CELL : COLOR_DEAD }
+    rl.UpdateTexture(s.tex, raw_data(s.pixels))
+    s.dirty = false
+}
+
+// One textured quad for the whole grid. The GPU clips whatever is off screen.
 draw_cells :: proc(s: ^State) {
-    x0, y0, x1, y1 := visible_cells(s)
-    for y in y0..<y1 {
-        for x in x0..<x1 {
-            if s.cur.cells[y*s.cur.w+x] != 0 {
-                rl.DrawRectangle(i32(x*CELL_SIZE), i32(y*CELL_SIZE), CELL_SIZE, CELL_SIZE, COLOR_CELL)
-            }
-        }
-    }
+    upload_cells(s)
+    src := rl.Rectangle{0, 0, f32(s.cur.w), f32(s.cur.h)}
+    dst := rl.Rectangle{0, 0, f32(s.cur.w*CELL_SIZE), f32(s.cur.h*CELL_SIZE)}
+    rl.DrawTexturePro(s.tex, src, dst, {0, 0}, 0, rl.WHITE)
     rl.DrawRectangleLines(0, 0, i32(s.cur.w*CELL_SIZE), i32(s.cur.h*CELL_SIZE), COLOR_BORDER)
 }
 
