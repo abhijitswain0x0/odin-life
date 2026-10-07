@@ -6,7 +6,7 @@ set -u
 cd "$(dirname "$0")/.."
 if [ -z "${DISPLAY:-}" ] || [ -z "${DEMO_IN_XVFB:-}" ]; then
     export DEMO_IN_XVFB=1
-    exec xvfb-run -a -s '-screen 0 1280x720x24' "$0" "$@"
+    exec xvfb-run -a -s '-screen 0 1280x720x24' bash "$0" "$@"
 fi
 OUT=${1:-demo.mp4}
 GAME=${GAME:-./life}
