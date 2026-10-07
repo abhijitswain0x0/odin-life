@@ -6,6 +6,7 @@ import "core:math"
 CELL_SIZE :: 8
 GRID_W :: 200
 GRID_H :: 120
+MAX_STEPS_PER_FRAME :: 10
 
 State :: struct {
     cur, next: Grid,
@@ -13,6 +14,12 @@ State :: struct {
     ticks_per_s, accum: f32,
     generation, population: int,
     camera: rl.Camera2D,
+}
+
+do_step :: proc(s: ^State) {
+    s.population = step(&s.cur, &s.next, s.wrap)
+    s.cur, s.next = s.next, s.cur
+    s.generation += 1
 }
 
 main :: proc() {
@@ -38,11 +45,26 @@ main :: proc() {
             state.population += paint_line(&state.cur, prev_x, prev_y, x, y, value)
         }
         prev_x, prev_y, prev_button = x, y, button
+
+        if rl.IsKeyPressed(.SPACE) { state.running = !state.running }
+        if (rl.IsKeyPressed(.N) || rl.IsKeyPressed(.RIGHT)) { do_step(&state) }
+        if state.running {
+            state.accum += rl.GetFrameTime()
+            period := 1/state.ticks_per_s
+            steps := 0
+            for state.accum >= period && steps < MAX_STEPS_PER_FRAME {
+                do_step(&state)
+                state.accum -= period
+                steps += 1
+            }
+            if steps == MAX_STEPS_PER_FRAME { state.accum = 0 }
+        }
         rl.BeginDrawing()
         rl.ClearBackground(rl.Color{15, 20, 29, 255})
         rl.BeginMode2D(state.camera)
         draw_cells(&state)
         rl.EndMode2D()
+        rl.DrawText(rl.TextFormat("gen %d  pop %d  %s", i32(state.generation), i32(state.population), state.running ? cstring("running") : cstring("paused")), 10, 10, 20, rl.RAYWHITE)
         rl.EndDrawing()
     }
 }
