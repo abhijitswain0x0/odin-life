@@ -49,7 +49,7 @@ Needs a display and OpenGL. On a headless box use Xvfb and Mesa software GL (`LI
 
 ## Recording the demo
 
-    scripts/record_demo.sh demo.mp4
+    bash scripts/record_demo.sh demo.mp4
 
 The video is not committed. It is attached to the release.
 
