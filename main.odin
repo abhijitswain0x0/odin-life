@@ -7,6 +7,10 @@ CELL_SIZE :: 8
 GRID_W :: 200
 GRID_H :: 120
 MAX_STEPS_PER_FRAME :: 10
+MIN_SPEED :: 1.0
+MAX_SPEED :: 120.0
+SPEED_FACTOR :: 1.25
+RANDOM_DENSITY :: 25
 
 State :: struct {
     cur, next: Grid,
@@ -20,6 +24,22 @@ do_step :: proc(s: ^State) {
     s.population = step(&s.cur, &s.next, s.wrap)
     s.cur, s.next = s.next, s.cur
     s.generation += 1
+}
+
+randomize :: proc(s: ^State) {
+    s.population = 0
+    for i in 0..<len(s.cur.cells) {
+        alive := rl.GetRandomValue(0, 99) < RANDOM_DENSITY
+        s.cur.cells[i] = alive ? 1 : 0
+        if alive { s.population += 1 }
+    }
+    s.generation = 0
+    s.accum = 0
+}
+
+clear_grid :: proc(s: ^State) {
+    for i in 0..<len(s.cur.cells) { s.cur.cells[i] = 0 }
+    s.population, s.generation, s.accum = 0, 0, 0
 }
 
 main :: proc() {
@@ -48,6 +68,11 @@ main :: proc() {
 
         if rl.IsKeyPressed(.SPACE) { state.running = !state.running }
         if (rl.IsKeyPressed(.N) || rl.IsKeyPressed(.RIGHT)) { do_step(&state) }
+        if rl.IsKeyPressed(.UP) { state.ticks_per_s = min(state.ticks_per_s*SPEED_FACTOR, MAX_SPEED) }
+        if rl.IsKeyPressed(.DOWN) { state.ticks_per_s = max(state.ticks_per_s/SPEED_FACTOR, MIN_SPEED) }
+        if rl.IsKeyPressed(.R) { randomize(&state) }
+        if rl.IsKeyPressed(.C) { clear_grid(&state) }
+        if rl.IsKeyPressed(.W) { state.wrap = !state.wrap }
         if state.running {
             state.accum += rl.GetFrameTime()
             period := 1/state.ticks_per_s
@@ -64,7 +89,7 @@ main :: proc() {
         rl.BeginMode2D(state.camera)
         draw_cells(&state)
         rl.EndMode2D()
-        rl.DrawText(rl.TextFormat("gen %d  pop %d  %s", i32(state.generation), i32(state.population), state.running ? cstring("running") : cstring("paused")), 10, 10, 20, rl.RAYWHITE)
+        rl.DrawText(rl.TextFormat("gen %d  pop %d  %.0f gen/s  wrap %s  %s", i32(state.generation), i32(state.population), state.ticks_per_s, state.wrap ? cstring("on") : cstring("off"), state.running ? cstring("running") : cstring("paused")), 10, 10, 20, rl.RAYWHITE)
         rl.EndDrawing()
     }
 }
