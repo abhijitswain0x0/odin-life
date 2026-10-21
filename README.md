@@ -1,5 +1,7 @@
 # odin-life
 
+![odin-life preview](docs/preview.svg)
+
 Conway's Game of Life in [Odin](https://odin-lang.org) with the bundled `vendor:raylib`. No other dependencies.
 
 Demo video: see the [v0.1.0 release](https://github.com/abhijitswain0x0/odin-life/releases/tag/v0.1.0). Test checklist: [docs/test-report.md](docs/test-report.md).
